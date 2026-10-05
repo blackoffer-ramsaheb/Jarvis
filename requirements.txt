@@ -1,0 +1,19 @@
+### `requirements.txt`
+
+fastapi
+uvicorn
+python-dotenv
+
+langchain
+langchain-core
+langchain-groq
+langgraph
+langchain-community
+langchain-text-splitters
+
+pypdf
+faiss-cpu
+sentence-transformers
+
+python-multipart
+

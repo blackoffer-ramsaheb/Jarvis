@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>J.A.R.V.I.S. | AI Assistant</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Marked.js for markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="hud-grid-overlay"></div>
+    <div class="ambient-glow"></div>
+
+    <div class="app-container">
+        <!-- Top Navigation Bar -->
+        <header class="top-nav">
+            <div class="brand">
+                <div class="arc-mini">
+                    <div class="core-circle"></div>
+                    <div class="rotating-ring"></div>
+                </div>
+                <div class="brand-text">
+                    <h1>J.A.R.V.I.S.</h1>
+                    <span class="sub-label">Autonomous Tactical Intelligence System</span>
+                </div>
+            </div>
+
+            <div class="system-status-bar">
+                <div class="status-badge" id="systemStatus">
+                    <span class="pulse-dot"></span>
+                    <span class="status-text">CONNECTING...</span>
+                </div>
+                <div class="time-widget" id="liveClock">--:--:--</div>
+                <button class="icon-btn voice-toggle-btn" id="ttsToggleBtn" title="Toggle Voice Response (TTS)">
+                    <i class="fa-solid fa-volume-high"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Workspace Area -->
+        <main class="main-layout">
+            <!-- Left Sidebar / Capabilities & Tools -->
+            <aside class="sidebar">
+                <!-- Arc Reactor Visualizer -->
+                <div class="arc-container">
+                    <div class="arc-reactor" id="arcReactor">
+                        <div class="outer-ring"></div>
+                        <div class="mid-ring"></div>
+                        <div class="inner-core">
+                            <i class="fa-solid fa-microchip" id="coreIcon"></i>
+                        </div>
+                        <div class="glow-layer"></div>
+                    </div>
+                    <div class="arc-label" id="arcStatusText">SYSTEM READY</div>
+                </div>
+
+                <!-- Navigation Tabs -->
+                <nav class="side-nav-tabs">
+                    <button class="nav-tab active" data-tab="chat-panel">
+                        <i class="fa-solid fa-comments"></i> <span>Live Chat</span>
+                    </button>
+                    <button class="nav-tab" data-tab="tasks-panel">
+                        <i class="fa-solid fa-list-check"></i> <span>Task Board</span>
+                        <span class="badge" id="taskCountBadge">0</span>
+                    </button>
+                    <button class="nav-tab" data-tab="rag-panel">
+                        <i class="fa-solid fa-file-pdf"></i> <span>Knowledge Base</span>
+                        <span class="badge" id="docCountBadge">0</span>
+                    </button>
+                </nav>
+
+                <!-- System Info Card -->
+                <div class="info-card">
+                    <div class="card-header">
+                        <i class="fa-solid fa-bolt"></i> <span>Core Modules</span>
+                    </div>
+                    <ul class="capability-list">
+                        <li><i class="fa-solid fa-check"></i> LangGraph ReAct Agent</li>
+                        <li><i class="fa-solid fa-check"></i> Groq LLaMA-3.3 70B</li>
+                        <li><i class="fa-solid fa-check"></i> SQLite Task Storage</li>
+                        <li><i class="fa-solid fa-check"></i> FAISS Vector Document RAG</li>
+                    </ul>
+                </div>
+            </aside>
+
+            <!-- Center Content Workspace -->
+            <section class="content-workspace">
+                <!-- TAB 1: Chat Interface -->
+                <div class="tab-pane active" id="chat-panel">
+                    <div class="chat-container">
+                        <div class="chat-header">
+                            <div class="chat-title">
+                                <i class="fa-solid fa-terminal"></i> Command & Dialogue Stream
+                            </div>
+                            <button class="text-btn" id="clearChatBtn" title="Clear Conversation">
+                                <i class="fa-solid fa-trash-can"></i> Clear
+                            </button>
+                        </div>
+
+                        <!-- Chat Messages Stream -->
+                        <div class="messages-stream" id="messagesStream">
+                            <div class="message-bubble assistant">
+                                <div class="avatar">
+                                    <i class="fa-solid fa-robot"></i>
+                                </div>
+                                <div class="bubble-content">
+                                    <div class="sender-name">JARVIS</div>
+                                    <div class="text-body">
+                                        Greetings! I am **J.A.R.V.I.S.**, your personal AI assistant. How may I assist you today?
+                                        <br><br>
+                                        You can ask me to solve calculations, manage your task database, check the live time, or query any PDF knowledge you upload.
+                                    </div>
+                                    <div class="bubble-footer">
+                                        <span class="time-stamp">Online</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Action Chips -->
+                        <div class="quick-prompts">
+                            <span class="chip-label">Quick Commands:</span>
+                            <button class="prompt-chip" data-prompt="What is the current date and time?">
+                                <i class="fa-regular fa-clock"></i> Current Time
+                            </button>
+                            <button class="prompt-chip" data-prompt="List all my stored tasks.">
+                                <i class="fa-solid fa-list-ul"></i> List Tasks
+                            </button>
+                            <button class="prompt-chip" data-prompt="Add a task: Review project documentation tomorrow">
+                                <i class="fa-solid fa-plus"></i> Add New Task
+                            </button>
+                            <button class="prompt-chip" data-prompt="Calculate (450 * 12) + (1850 / 5)">
+                                <i class="fa-solid fa-calculator"></i> Calculation
+                            </button>
+                        </div>
+
+                        <!-- Chat Input Box -->
+                        <form class="chat-input-wrapper" id="chatForm">
+                            <button type="button" class="mic-btn" id="micBtn" title="Speech to Text">
+                                <i class="fa-solid fa-microphone"></i>
+                            </button>
+                            <textarea id="userInput" rows="1" placeholder="Type your directive or command for Jarvis (Enter to send)..." autocomplete="off"></textarea>
+                            <button type="submit" class="send-btn" id="sendBtn" title="Send Directive">
+                                <i class="fa-solid fa-paper-plane"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- TAB 2: Task Board Panel -->
+                <div class="tab-pane" id="tasks-panel">
+                    <div class="panel-box">
+                        <div class="panel-header">
+                            <div class="header-left">
+                                <h2><i class="fa-solid fa-list-check"></i> SQLite Task Manager</h2>
+                                <p>Manage and synchronize database tasks directly or through Jarvis commands.</p>
+                            </div>
+                            <button class="refresh-btn" id="refreshTasksBtn" title="Refresh Tasks">
+                                <i class="fa-solid fa-rotate"></i> Sync
+                            </button>
+                        </div>
+
+                        <!-- Add Task Inline Form -->
+                        <form class="inline-task-form" id="createTaskForm">
+                            <input type="text" id="newTaskInput" placeholder="Enter a new task description..." required>
+                            <button type="submit" class="action-btn">
+                                <i class="fa-solid fa-plus"></i> Add Task
+                            </button>
+                        </form>
+
+                        <!-- Task List -->
+                        <div class="task-list-container" id="taskListContainer">
+                            <div class="empty-state">
+                                <i class="fa-solid fa-spinner fa-spin"></i> Loading tasks...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: Document RAG Panel -->
+                <div class="tab-pane" id="rag-panel">
+                    <div class="panel-box">
+                        <div class="panel-header">
+                            <div class="header-left">
+                                <h2><i class="fa-solid fa-file-pdf"></i> Knowledge Base & Document RAG</h2>
+                                <p>Upload PDF documents to index them with FAISS vector database for conversational question answering.</p>
+                            </div>
+                        </div>
+
+                        <!-- Upload Zone -->
+                        <div class="dropzone" id="pdfDropzone">
+                            <input type="file" id="fileInput" accept=".pdf" style="display: none;">
+                            <i class="fa-solid fa-cloud-arrow-up drop-icon"></i>
+                            <h3>Drag & Drop PDF Document Here</h3>
+                            <p>or <button type="button" class="browse-link" id="browseBtn">browse files</button> from your computer</p>
+                            <span class="file-hint">Supported format: PDF documents</span>
+                        </div>
+
+                        <!-- Upload Progress Bar -->
+                        <div class="upload-progress-container" id="uploadProgress" style="display: none;">
+                            <div class="progress-info">
+                                <span id="uploadFileName">Uploading file...</span>
+                                <span id="uploadStatusText">Indexing vector chunks...</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progressFill"></div>
+                            </div>
+                        </div>
+
+                        <!-- Document List -->
+                        <div class="doc-list-section">
+                            <h3><i class="fa-solid fa-folder-open"></i> Indexed Documents</h3>
+                            <div class="doc-list" id="docList">
+                                <div class="empty-state">No documents indexed yet. Upload a PDF above.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Notification Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
