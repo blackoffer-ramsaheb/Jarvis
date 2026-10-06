@@ -1,20 +1,31 @@
 /**
- * J.A.R.V.I.S. Client Controller & Integration Engine
+ * J.A.R.V.I.S. Mark II Client Controller & Integration Engine
+ * Full-Duplex Streaming, Multi-Turn Memory, Hardware Telemetry & Audio Synthesis
  */
 
 document.addEventListener("DOMContentLoaded", () => {
-    // API Endpoints
-    const API_BASE = ""; // Relative path allows working seamlessly behind FastAPI or proxy
+    const API_BASE = "";
 
-    // DOM Elements
+    // DOM Elements - Navigation & Status
     const liveClock = document.getElementById("liveClock");
     const systemStatus = document.getElementById("systemStatus");
     const statusText = systemStatus.querySelector(".status-text");
     const ttsToggleBtn = document.getElementById("ttsToggleBtn");
+    const sfxToggleBtn = document.getElementById("sfxToggleBtn");
     const arcReactor = document.getElementById("arcReactor");
     const arcStatusText = document.getElementById("arcStatusText");
 
-    // Navigation & Tabs
+    // Telemetry Gauges
+    const cpuStatVal = document.getElementById("cpuStatVal");
+    const cpuGaugeFill = document.getElementById("cpuGaugeFill");
+    const ramStatVal = document.getElementById("ramStatVal");
+    const ramGaugeFill = document.getElementById("ramGaugeFill");
+    const diskStatVal = document.getElementById("diskStatVal");
+    const diskGaugeFill = document.getElementById("diskGaugeFill");
+    const osStatVal = document.getElementById("osStatVal");
+    const powerStatVal = document.getElementById("powerStatVal");
+
+    // Tabs
     const navTabs = document.querySelectorAll(".nav-tab");
     const tabPanes = document.querySelectorAll(".tab-pane");
     const taskCountBadge = document.getElementById("taskCountBadge");
@@ -33,7 +44,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const taskListContainer = document.getElementById("taskListContainer");
     const createTaskForm = document.getElementById("createTaskForm");
     const newTaskInput = document.getElementById("newTaskInput");
+    const newTaskPriority = document.getElementById("newTaskPriority");
     const refreshTasksBtn = document.getElementById("refreshTasksBtn");
+    const filterTabBtns = document.querySelectorAll(".filter-tab-btn");
+    const filterCountLabel = document.getElementById("filterCountLabel");
 
     // RAG Elements
     const pdfDropzone = document.getElementById("pdfDropzone");
@@ -44,16 +58,113 @@ document.addEventListener("DOMContentLoaded", () => {
     const uploadStatusText = document.getElementById("uploadStatusText");
     const progressFill = document.getElementById("progressFill");
     const docList = document.getElementById("docList");
+    const resetKnowledgeBtn = document.getElementById("resetKnowledgeBtn");
+    const refreshDocsBtn = document.getElementById("refreshDocsBtn");
 
     const toastEl = document.getElementById("toast");
 
     // State Variables
     let isTtsEnabled = true;
+    let isSfxEnabled = true;
     let isRecording = false;
-    let speechRecognition = null;
+    let currentTaskFilter = "all";
+    let activeSessionId = localStorage.getItem("jarvis_session_id") || "session_" + Math.random().toString(36).substring(2, 9);
+    localStorage.setItem("jarvis_session_id", activeSessionId);
 
     // -------------------------------------------------------------
-    // 1. Clock & System Health Diagnostics
+    // 1. Audio Synthesizer (Sci-Fi Sound FX using Web Audio API)
+    // -------------------------------------------------------------
+    let audioCtx = null;
+    function getAudioContext() {
+        if (!audioCtx) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (AudioContext) audioCtx = new AudioContext();
+        }
+        if (audioCtx && audioCtx.state === "suspended") {
+            audioCtx.resume();
+        }
+        return audioCtx;
+    }
+
+    function playSfx(type) {
+        if (!isSfxEnabled) return;
+        try {
+            const ctx = getAudioContext();
+            if (!ctx) return;
+            const now = ctx.currentTime;
+
+            if (type === "boot") {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = "sine";
+                osc.frequency.setValueAtTime(440, now);
+                osc.frequency.exponentialRampToValueAtTime(880, now + 0.25);
+                gain.gain.setValueAtTime(0.08, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } else if (type === "send") {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = "sine";
+                osc.frequency.setValueAtTime(520, now);
+                osc.frequency.exponentialRampToValueAtTime(780, now + 0.12);
+                gain.gain.setValueAtTime(0.06, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+                osc.start(now);
+                osc.stop(now + 0.14);
+            } else if (type === "receive") {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = "triangle";
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.setValueAtTime(1050, now + 0.08);
+                gain.gain.setValueAtTime(0.05, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            } else if (type === "tool") {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = "sine";
+                osc.frequency.setValueAtTime(660, now);
+                osc.frequency.exponentialRampToValueAtTime(440, now + 0.08);
+                gain.gain.setValueAtTime(0.04, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                osc.start(now);
+                osc.stop(now + 0.1);
+            }
+        } catch (e) {
+            // Audio context policy fallback
+        }
+    }
+
+    if (sfxToggleBtn) {
+        sfxToggleBtn.addEventListener("click", () => {
+            isSfxEnabled = !isSfxEnabled;
+            if (isSfxEnabled) {
+                sfxToggleBtn.classList.remove("muted");
+                sfxToggleBtn.innerHTML = '<i class="fa-solid fa-bell"></i>';
+                showToast("HUD Sound FX enabled");
+                playSfx("boot");
+            } else {
+                sfxToggleBtn.classList.add("muted");
+                sfxToggleBtn.innerHTML = '<i class="fa-solid fa-bell-slash"></i>';
+                showToast("HUD Sound FX muted");
+            }
+        });
+    }
+
+    // -------------------------------------------------------------
+    // 2. Live Clock & Telemetry Polling
     // -------------------------------------------------------------
     function updateClock() {
         const now = new Date();
@@ -62,25 +173,50 @@ document.addEventListener("DOMContentLoaded", () => {
     setInterval(updateClock, 1000);
     updateClock();
 
-    async function checkSystemHealth() {
+    async function fetchTelemetry() {
         try {
-            const res = await fetch(`${API_BASE}/api/health`);
-            if (res.ok) {
-                systemStatus.classList.remove("offline");
-                statusText.textContent = "JARVIS ONLINE";
+            const res = await fetch(`${API_BASE}/system/stats`);
+            if (!res.ok) throw new Error("Telemetry offline");
+            const data = await res.json();
+
+            // CPU
+            const cpu = data.cpu_percent || 0;
+            cpuStatVal.textContent = `${cpu}%`;
+            cpuGaugeFill.style.width = `${Math.min(cpu, 100)}%`;
+            if (cpu > 80) cpuGaugeFill.classList.add("high-load");
+            else cpuGaugeFill.classList.remove("high-load");
+
+            // RAM
+            const ramPct = data.ram_percent || 0;
+            ramStatVal.textContent = `${ramPct}% (${data.ram_used_gb || 0}GB)`;
+            ramGaugeFill.style.width = `${Math.min(ramPct, 100)}%`;
+
+            // Disk
+            const diskPct = data.disk_percent || 0;
+            diskStatVal.textContent = `${diskPct}%`;
+            diskGaugeFill.style.width = `${Math.min(diskPct, 100)}%`;
+
+            // Meta
+            if (data.os) osStatVal.innerHTML = `<i class="fa-brands fa-windows"></i> ${data.os}`;
+            if (data.battery_percent !== null && data.battery_percent !== undefined) {
+                const plugIcon = data.is_charging ? "bolt" : "battery-half";
+                powerStatVal.innerHTML = `<i class="fa-solid fa-${plugIcon}"></i> ${data.battery_percent}%`;
             } else {
-                throw new Error("API error");
+                powerStatVal.innerHTML = `<i class="fa-solid fa-bolt"></i> AC Online`;
             }
-        } catch (err) {
+
+            systemStatus.classList.remove("offline");
+            statusText.textContent = "JARVIS ONLINE";
+        } catch (e) {
             systemStatus.classList.add("offline");
             statusText.textContent = "DISCONNECTED";
         }
     }
-    checkSystemHealth();
-    setInterval(checkSystemHealth, 15000);
+    fetchTelemetry();
+    setInterval(fetchTelemetry, 4000);
 
     // -------------------------------------------------------------
-    // 2. Arc Reactor Visual State Control
+    // 3. Arc Reactor Visual State Control
     // -------------------------------------------------------------
     function setArcState(state, text) {
         arcReactor.classList.remove("thinking", "listening");
@@ -90,7 +226,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // -------------------------------------------------------------
-    // 3. Tab Navigation
+    // 4. Tab Navigation
     // -------------------------------------------------------------
     navTabs.forEach(tab => {
         tab.addEventListener("click", () => {
@@ -102,13 +238,13 @@ document.addEventListener("DOMContentLoaded", () => {
             const targetPane = document.getElementById(target);
             if (targetPane) targetPane.classList.add("active");
 
-            if (target === "tasks-panel") loadTasks();
+            if (target === "tasks-panel") loadTasks(currentTaskFilter);
             if (target === "rag-panel") loadDocuments();
         });
     });
 
     // -------------------------------------------------------------
-    // 4. Toast Notifications
+    // 5. Toast Notifications
     // -------------------------------------------------------------
     let toastTimeout;
     function showToast(message) {
@@ -121,7 +257,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // -------------------------------------------------------------
-    // 5. Text-To-Speech (TTS)
+    // 6. Text-To-Speech (TTS)
     // -------------------------------------------------------------
     ttsToggleBtn.addEventListener("click", () => {
         isTtsEnabled = !isTtsEnabled;
@@ -139,9 +275,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function speakText(text) {
         if (!isTtsEnabled || !('speechSynthesis' in window)) return;
-        window.speechSynthesis.cancel(); // cancel pending
+        window.speechSynthesis.cancel();
 
-        // Remove markdown formatting / symbols for speech
         const cleanText = text
             .replace(/[*#_`~\[\]]/g, "")
             .replace(/https?:\/\/\S+/g, "link")
@@ -153,7 +288,6 @@ document.addEventListener("DOMContentLoaded", () => {
         utterance.rate = 1.05;
         utterance.pitch = 0.95;
 
-        // Try to find an English voice
         const voices = window.speechSynthesis.getVoices();
         const preferredVoice = voices.find(v => v.name.includes("Google") || v.name.includes("Natural") || v.lang.startsWith("en"));
         if (preferredVoice) utterance.voice = preferredVoice;
@@ -161,11 +295,9 @@ document.addEventListener("DOMContentLoaded", () => {
         utterance.onstart = () => {
             setArcState("listening", "TRANSMITTING VOICE");
         };
-
         utterance.onend = () => {
             setArcState("ready", "SYSTEM READY");
         };
-
         utterance.onerror = () => {
             setArcState("ready", "SYSTEM READY");
         };
@@ -174,35 +306,36 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // -------------------------------------------------------------
-    // 6. Speech-to-Text (Voice Recognition)
+    // 7. Speech-to-Text (Voice Recognition)
     // -------------------------------------------------------------
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition = null;
     if (SpeechRecognition) {
-        speechRecognition = new SpeechRecognition();
-        speechRecognition.continuous = false;
-        speechRecognition.interimResults = false;
-        speechRecognition.lang = "en-US";
+        recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = "en-US";
 
-        speechRecognition.onstart = () => {
+        recognition.onstart = () => {
             isRecording = true;
             micBtn.classList.add("recording");
             setArcState("listening", "AUDIO LISTENING...");
             showToast("Listening to voice directive...");
+            playSfx("boot");
         };
 
-        speechRecognition.onresult = (e) => {
+        recognition.onresult = (e) => {
             const transcript = e.results[0][0].transcript;
             userInput.value = transcript;
             handleUserMessage(transcript);
         };
 
-        speechRecognition.onerror = (e) => {
-            console.error("Speech recognition error:", e.error);
+        recognition.onerror = (e) => {
             showToast(`Voice input error: ${e.error}`);
             stopRecording();
         };
 
-        speechRecognition.onend = () => {
+        recognition.onend = () => {
             stopRecording();
         };
 
@@ -215,12 +348,12 @@ document.addEventListener("DOMContentLoaded", () => {
         micBtn.addEventListener("click", () => {
             if (!isRecording) {
                 try {
-                    speechRecognition.start();
+                    recognition.start();
                 } catch (e) {
                     console.warn(e);
                 }
             } else {
-                speechRecognition.stop();
+                recognition.stop();
             }
         });
     } else {
@@ -229,7 +362,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // -------------------------------------------------------------
-    // 7. Live Chat & Directive Handling
+    // 8. Live Chat & Full-Duplex Token Streaming Engine
     // -------------------------------------------------------------
     function appendMessage(sender, text, isMarkdown = true) {
         const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -259,7 +392,6 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
         `;
 
-        // Copy button handler
         const copyBtn = bubble.querySelector(".copy-btn");
         if (copyBtn) {
             copyBtn.addEventListener("click", () => {
@@ -267,7 +399,6 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }
 
-        // Speak button handler
         const speakBtn = bubble.querySelector(".speak-btn");
         if (speakBtn) {
             speakBtn.addEventListener("click", () => {
@@ -280,19 +411,38 @@ document.addEventListener("DOMContentLoaded", () => {
         return bubble;
     }
 
-    function appendLoadingBubble() {
+    function createStreamingBubble() {
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const bubble = document.createElement("div");
-        bubble.className = "message-bubble assistant loading-bubble";
+        bubble.className = "message-bubble assistant streaming-bubble";
+
         bubble.innerHTML = `
             <div class="avatar"><i class="fa-solid fa-robot"></i></div>
             <div class="bubble-content">
                 <div class="sender-name">JARVIS</div>
-                <div class="text-body"><i class="fa-solid fa-circle-notch fa-spin"></i> Processing directive...</div>
+                <div class="tool-trace-container" style="display:none;"></div>
+                <div class="text-body"><span class="streaming-text"></span><span class="streaming-cursor"></span></div>
+                <div class="bubble-footer">
+                    <span class="time-stamp">${timeStr}</span>
+                    <div class="bubble-actions" style="display:none;">
+                        <button class="mini-action-btn copy-btn" title="Copy text"><i class="fa-regular fa-copy"></i></button>
+                        <button class="mini-action-btn speak-btn" title="Speak response"><i class="fa-solid fa-volume-high"></i></button>
+                    </div>
+                </div>
             </div>
         `;
+
         messagesStream.appendChild(bubble);
         messagesStream.scrollTop = messagesStream.scrollHeight;
-        return bubble;
+        return {
+            element: bubble,
+            traceContainer: bubble.querySelector(".tool-trace-container"),
+            textContainer: bubble.querySelector(".streaming-text"),
+            cursor: bubble.querySelector(".streaming-cursor"),
+            footerActions: bubble.querySelector(".bubble-actions"),
+            copyBtn: bubble.querySelector(".copy-btn"),
+            speakBtn: bubble.querySelector(".speak-btn")
+        };
     }
 
     async function handleUserMessage(message) {
@@ -304,33 +454,137 @@ document.addEventListener("DOMContentLoaded", () => {
         userInput.style.height = "auto";
         sendBtn.disabled = true;
 
+        playSfx("send");
         setArcState("thinking", "PROCESSING QUERY");
-        const loadingBubble = appendLoadingBubble();
+
+        const streamBubble = createStreamingBubble();
+        let accumulatedText = "";
 
         try {
-            const res = await fetch(`${API_BASE}/ask`, {
+            const response = await fetch(`${API_BASE}/ask/stream`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message: query })
+                body: JSON.stringify({ message: query, session_id: activeSessionId })
             });
 
-            if (!res.ok) {
-                const errData = await res.json().catch(() => ({}));
-                throw new Error(errData.detail || "Server communication failed");
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: Failed to connect`);
             }
 
-            const data = await res.json();
-            loadingBubble.remove();
-            appendMessage("assistant", data.answer);
-            speakText(data.answer);
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder("utf-8");
+            let buffer = "";
 
-            // If user asked something related to tasks, sync tasks list
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split("\n\n");
+                buffer = lines.pop(); // Keep partial line for next iteration
+
+                for (const line of lines) {
+                    if (line.startsWith("data: ")) {
+                        const jsonStr = line.slice(6).trim();
+                        if (!jsonStr) continue;
+
+                        try {
+                            const event = JSON.parse(jsonStr);
+
+                            if (event.type === "tool_start") {
+                                playSfx("tool");
+                                streamBubble.traceContainer.style.display = "flex";
+                                const toolItem = document.createElement("div");
+                                toolItem.className = "tool-trace-item";
+                                toolItem.id = `tool-${event.name}`;
+                                toolItem.innerHTML = `
+                                    <i class="fa-solid fa-gear fa-spin" style="color:var(--cyan-primary);"></i>
+                                    <span class="tool-name-badge">${event.name}</span>
+                                    <span class="tool-output-chip">Executing protocol...</span>
+                                `;
+                                streamBubble.traceContainer.appendChild(toolItem);
+                                setArcState("thinking", `EXECUTING ${event.name.toUpperCase()}`);
+                                messagesStream.scrollTop = messagesStream.scrollHeight;
+                            }
+                            else if (event.type === "tool_end") {
+                                playSfx("tool");
+                                const toolItem = streamBubble.traceContainer.querySelector(`#tool-${event.name}`);
+                                if (toolItem) {
+                                    toolItem.innerHTML = `
+                                        <i class="fa-solid fa-check" style="color:var(--green-active);"></i>
+                                        <span class="tool-name-badge">${event.name}</span>
+                                        <span class="tool-output-chip">${escapeHtml(event.output || "Completed")}</span>
+                                    `;
+                                }
+                                messagesStream.scrollTop = messagesStream.scrollHeight;
+                            }
+                            else if (event.type === "token") {
+                                accumulatedText += event.content;
+                                if (typeof marked !== "undefined") {
+                                    streamBubble.textContainer.innerHTML = marked.parse(accumulatedText);
+                                } else {
+                                    streamBubble.textContainer.textContent = accumulatedText;
+                                }
+                                messagesStream.scrollTop = messagesStream.scrollHeight;
+                            }
+                            else if (event.type === "done") {
+                                if (event.content && !accumulatedText) {
+                                    accumulatedText = event.content;
+                                    if (typeof marked !== "undefined") {
+                                        streamBubble.textContainer.innerHTML = marked.parse(accumulatedText);
+                                    } else {
+                                        streamBubble.textContainer.textContent = accumulatedText;
+                                    }
+                                }
+                            }
+                            else if (event.type === "error") {
+                                accumulatedText += `\n\n⚠️ **Error:** ${event.content}`;
+                                streamBubble.textContainer.innerHTML = marked.parse(accumulatedText);
+                            }
+                        } catch (parseErr) {
+                            console.error("SSE JSON parse error:", parseErr, jsonStr);
+                        }
+                    }
+                }
+            }
+
+            // Finalize stream bubble
+            if (streamBubble.cursor) streamBubble.cursor.remove();
+            streamBubble.footerActions.style.display = "flex";
+
+            // Wire actions
+            streamBubble.copyBtn.addEventListener("click", () => {
+                navigator.clipboard.writeText(accumulatedText).then(() => showToast("Copied to clipboard"));
+            });
+            streamBubble.speakBtn.addEventListener("click", () => {
+                speakText(accumulatedText);
+            });
+
+            playSfx("receive");
+            speakText(accumulatedText);
+
+            // If task command detected, refresh task board
             if (/task/i.test(query)) {
-                loadTasks();
+                loadTasks(currentTaskFilter);
             }
         } catch (err) {
-            loadingBubble.remove();
-            appendMessage("assistant", `⚠️ **Error:** Unable to complete directive. (${err.message})`);
+            console.error("Streaming error, falling back to synchronous /ask:", err);
+            // Fallback sync attempt
+            try {
+                const res = await fetch(`${API_BASE}/ask`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ message: query, session_id: activeSessionId })
+                });
+                const data = await res.json();
+                if (streamBubble.cursor) streamBubble.cursor.remove();
+                streamBubble.textContainer.innerHTML = marked.parse(data.answer);
+                streamBubble.footerActions.style.display = "flex";
+                speakText(data.answer);
+            } catch (fallbackErr) {
+                if (streamBubble.cursor) streamBubble.cursor.remove();
+                streamBubble.textContainer.innerHTML = `⚠️ **Error:** Unable to complete directive. (${err.message})`;
+            }
         } finally {
             setArcState("ready", "SYSTEM READY");
             sendBtn.disabled = false;
@@ -356,10 +610,21 @@ document.addEventListener("DOMContentLoaded", () => {
         userInput.style.height = `${Math.min(userInput.scrollHeight, 120)}px`;
     });
 
-    // Clear Chat
-    clearChatBtn.addEventListener("click", () => {
+    // Reset Session & Clear History
+    clearChatBtn.addEventListener("click", async () => {
+        try {
+            await fetch(`${API_BASE}/chat/history?session_id=${activeSessionId}`, { method: "DELETE" });
+        } catch (e) {
+            console.warn("Could not delete server history:", e);
+        }
+        // Rotate session ID
+        activeSessionId = "session_" + Math.random().toString(36).substring(2, 9);
+        localStorage.setItem("jarvis_session_id", activeSessionId);
+
         messagesStream.innerHTML = "";
-        appendMessage("assistant", "Dialogue logs cleared. Jarvis operational and standing by.");
+        appendMessage("assistant", "Session memory purged. New neural context established. Jarvis standing by.");
+        playSfx("boot");
+        showToast("New session initialized");
     });
 
     // Quick Prompt Chips
@@ -372,12 +637,13 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // -------------------------------------------------------------
-    // 8. Task Manager API Integration
+    // 9. Interactive Task Manager API
     // -------------------------------------------------------------
-    async function loadTasks() {
+    async function loadTasks(filter = "all") {
         taskListContainer.innerHTML = `<div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i> Syncing tasks...</div>`;
         try {
-            const res = await fetch(`${API_BASE}/tasks`);
+            const url = filter === "all" ? `${API_BASE}/tasks` : `${API_BASE}/tasks?status=${filter}`;
+            const res = await fetch(url);
             if (!res.ok) throw new Error("Failed to load tasks");
             const data = await res.json();
             renderTasks(data.tasks || []);
@@ -388,26 +654,67 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function renderTasks(tasks) {
         taskCountBadge.textContent = tasks.length;
+        filterCountLabel.textContent = `Showing ${tasks.length} task${tasks.length === 1 ? '' : 's'}`;
+
         if (!tasks || tasks.length === 0) {
-            taskListContainer.innerHTML = `<div class="empty-state"><i class="fa-solid fa-clipboard-check"></i> No active tasks. Add one above or tell Jarvis!</div>`;
+            taskListContainer.innerHTML = `<div class="empty-state"><i class="fa-solid fa-clipboard-check"></i> No tasks match current filter.</div>`;
             return;
         }
 
         taskListContainer.innerHTML = "";
         tasks.forEach(task => {
+            const isDone = task.status === "completed";
             const card = document.createElement("div");
-            card.className = "task-card";
+            card.className = `task-card ${isDone ? 'completed' : ''}`;
+
+            const prioClass = (task.priority || "medium").toLowerCase();
+
             card.innerHTML = `
-                <div class="task-details">
-                    <span class="task-text">${escapeHtml(task.task)}</span>
-                    <span class="task-meta">ID: #${task.id} &bull; Created: ${task.created_at || 'Just now'}</span>
+                <div class="task-left-group">
+                    <button class="task-check-btn" title="Toggle Status" data-id="${task.id}" data-status="${task.status}">
+                        <i class="fa-solid ${isDone ? 'fa-check' : 'fa-circle-dot'}"></i>
+                    </button>
+                    <div class="task-details">
+                        <div class="task-text-row">
+                            <span class="prio-badge ${prioClass}">${prioClass}</span>
+                            <span class="task-text">${escapeHtml(task.task)}</span>
+                        </div>
+                        <span class="task-meta">#${task.id} &bull; ${task.status.toUpperCase()} &bull; ${task.created_at || 'Recent'}</span>
+                    </div>
                 </div>
                 <button class="delete-task-btn" title="Delete Task" data-id="${task.id}">
                     <i class="fa-solid fa-trash"></i>
                 </button>
             `;
 
-            card.querySelector(".delete-task-btn").addEventListener("click", () => deleteTask(task.id));
+            // Toggle Complete
+            card.querySelector(".task-check-btn").addEventListener("click", async () => {
+                const nextStatus = isDone ? "pending" : "completed";
+                try {
+                    await fetch(`${API_BASE}/tasks/${task.id}/status`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ status: nextStatus })
+                    });
+                    playSfx("tool");
+                    loadTasks(currentTaskFilter);
+                } catch (e) {
+                    showToast(`Error: ${e.message}`);
+                }
+            });
+
+            // Delete Task
+            card.querySelector(".delete-task-btn").addEventListener("click", async () => {
+                try {
+                    await fetch(`${API_BASE}/tasks/${task.id}`, { method: "DELETE" });
+                    playSfx("tool");
+                    showToast(`Task #${task.id} deleted`);
+                    loadTasks(currentTaskFilter);
+                } catch (e) {
+                    showToast(`Error: ${e.message}`);
+                }
+            });
+
             taskListContainer.appendChild(card);
         });
     }
@@ -415,41 +722,41 @@ document.addEventListener("DOMContentLoaded", () => {
     createTaskForm.addEventListener("submit", async (e) => {
         e.preventDefault();
         const text = newTaskInput.value.trim();
+        const prio = newTaskPriority.value;
         if (!text) return;
 
         try {
             const res = await fetch(`${API_BASE}/tasks`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ task: text })
+                body: JSON.stringify({ task: text, priority: prio })
             });
             if (!res.ok) throw new Error("Could not add task");
             newTaskInput.value = "";
-            showToast("Task added successfully");
-            loadTasks();
+            playSfx("tool");
+            showToast("Task created successfully");
+            loadTasks(currentTaskFilter);
         } catch (err) {
             showToast(`Error: ${err.message}`);
         }
     });
 
-    async function deleteTask(taskId) {
-        try {
-            const res = await fetch(`${API_BASE}/tasks/${taskId}`, { method: "DELETE" });
-            if (!res.ok) throw new Error("Failed to delete task");
-            showToast(`Task #${taskId} removed`);
-            loadTasks();
-        } catch (err) {
-            showToast(`Error: ${err.message}`);
-        }
-    }
+    filterTabBtns.forEach(btn => {
+        btn.addEventListener("click", () => {
+            filterTabBtns.forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            currentTaskFilter = btn.dataset.filter;
+            loadTasks(currentTaskFilter);
+        });
+    });
 
     refreshTasksBtn.addEventListener("click", () => {
-        loadTasks();
+        loadTasks(currentTaskFilter);
         showToast("Tasks synchronized");
     });
 
     // -------------------------------------------------------------
-    // 9. Document RAG Upload Integration
+    // 10. Multi-Format Knowledge Hub & Document RAG
     // -------------------------------------------------------------
     async function loadDocuments() {
         try {
@@ -465,24 +772,52 @@ document.addEventListener("DOMContentLoaded", () => {
     function renderDocuments(docs) {
         docCountBadge.textContent = docs.length;
         if (!docs || docs.length === 0) {
-            docList.innerHTML = `<div class="empty-state">No documents indexed yet. Upload a PDF above.</div>`;
+            docList.innerHTML = `<div class="empty-state">No documents indexed yet. Upload a document above.</div>`;
             return;
         }
 
         docList.innerHTML = "";
         docs.forEach(doc => {
+            const ext = (doc.extension || "").toLowerCase();
+            let iconClass = "fa-file-lines";
+            if (ext === ".pdf") iconClass = "fa-file-pdf";
+            else if (ext === ".docx" || ext === ".doc") iconClass = "fa-file-word";
+            else if (ext === ".csv") iconClass = "fa-file-csv";
+            else if (ext === ".txt" || ext === ".md") iconClass = "fa-file-code";
+
             const card = document.createElement("div");
             card.className = "doc-card";
             card.innerHTML = `
                 <div class="doc-info">
-                    <i class="fa-solid fa-file-pdf"></i>
+                    <i class="fa-solid ${iconClass}" style="color:var(--cyan-primary);font-size:1.4rem;"></i>
                     <div>
                         <div class="doc-name">${escapeHtml(doc.filename)}</div>
-                        <div class="doc-size">${doc.size_kb} KB</div>
+                        <div class="doc-size">${doc.size_kb} KB &bull; ${ext.toUpperCase().replace('.', '')}</div>
                     </div>
                 </div>
-                <span class="indexed-badge"><i class="fa-solid fa-check"></i> Indexed</span>
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <span class="indexed-badge"><i class="fa-solid fa-check"></i> Indexed</span>
+                    <button class="delete-doc-btn" title="Delete Document" data-file="${escapeHtml(doc.filename)}">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </div>
             `;
+
+            card.querySelector(".delete-doc-btn").addEventListener("click", async () => {
+                if (!confirm(`Remove document '${doc.filename}' and update knowledge index?`)) return;
+                try {
+                    const res = await fetch(`${API_BASE}/documents/${encodeURIComponent(doc.filename)}`, {
+                        method: "DELETE"
+                    });
+                    if (!res.ok) throw new Error("Delete failed");
+                    playSfx("tool");
+                    showToast(`Document '${doc.filename}' deleted`);
+                    loadDocuments();
+                } catch (e) {
+                    showToast(`Error: ${e.message}`);
+                }
+            });
+
             docList.appendChild(card);
         });
     }
@@ -516,14 +851,16 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     async function handleFileUpload(file) {
-        if (!file.name.toLowerCase().endsWith(".pdf")) {
-            showToast("Only PDF files are supported");
+        const allowedExts = [".pdf", ".docx", ".doc", ".txt", ".md", ".csv"];
+        const fileExt = "." + file.name.split(".").pop().toLowerCase();
+        if (!allowedExts.includes(fileExt)) {
+            showToast(`Unsupported format. Supported: ${allowedExts.join(", ")}`);
             return;
         }
 
         uploadProgress.style.display = "block";
         uploadFileName.textContent = file.name;
-        uploadStatusText.textContent = "Uploading & extracting chunks...";
+        uploadStatusText.textContent = "Parsing & indexing vector chunks...";
         progressFill.style.width = "40%";
 
         const formData = new FormData();
@@ -546,12 +883,13 @@ document.addEventListener("DOMContentLoaded", () => {
             const data = await res.json();
             progressFill.style.width = "100%";
             uploadStatusText.textContent = `Indexed ${data.chunks} chunks successfully!`;
+            playSfx("tool");
             showToast(`Uploaded & indexed ${data.chunks} chunks`);
 
             setTimeout(() => {
                 uploadProgress.style.display = "none";
                 progressFill.style.width = "0%";
-            }, 3500);
+            }, 3000);
 
             loadDocuments();
         } catch (err) {
@@ -567,6 +905,28 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    if (resetKnowledgeBtn) {
+        resetKnowledgeBtn.addEventListener("click", async () => {
+            if (!confirm("Are you sure you want to purge all indexed documents and reset the vector store?")) return;
+            try {
+                const res = await fetch(`${API_BASE}/documents/reset`, { method: "POST" });
+                if (!res.ok) throw new Error("Reset failed");
+                playSfx("tool");
+                showToast("Knowledge base purged successfully");
+                loadDocuments();
+            } catch (e) {
+                showToast(`Error: ${e.message}`);
+            }
+        });
+    }
+
+    if (refreshDocsBtn) {
+        refreshDocsBtn.addEventListener("click", () => {
+            loadDocuments();
+            showToast("Document library refreshed");
+        });
+    }
+
     // Helper: Escape HTML
     function escapeHtml(str) {
         if (!str) return "";
@@ -578,7 +938,8 @@ document.addEventListener("DOMContentLoaded", () => {
             .replace(/'/g, "&#039;");
     }
 
-    // Initial Load
-    loadTasks();
+    // Initial load
+    playSfx("boot");
+    loadTasks(currentTaskFilter);
     loadDocuments();
 });

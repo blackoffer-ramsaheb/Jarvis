@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>J.A.R.V.I.S. | AI Assistant</title>
+    <title>J.A.R.V.I.S. | Mark II Tactical AI Assistant</title>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Marked.js for markdown parsing -->
@@ -28,16 +28,19 @@
                 </div>
                 <div class="brand-text">
                     <h1>J.A.R.V.I.S.</h1>
-                    <span class="sub-label">Autonomous Tactical Intelligence System</span>
+                    <span class="sub-label">Mark II Autonomous Tactical Intelligence</span>
                 </div>
             </div>
 
             <div class="system-status-bar">
                 <div class="status-badge" id="systemStatus">
                     <span class="pulse-dot"></span>
-                    <span class="status-text">CONNECTING...</span>
+                    <span class="status-text">INITIALIZING...</span>
                 </div>
                 <div class="time-widget" id="liveClock">--:--:--</div>
+                <button class="icon-btn" id="sfxToggleBtn" title="Toggle Sound FX">
+                    <i class="fa-solid fa-bell"></i>
+                </button>
                 <button class="icon-btn voice-toggle-btn" id="ttsToggleBtn" title="Toggle Voice Response (TTS)">
                     <i class="fa-solid fa-volume-high"></i>
                 </button>
@@ -71,21 +74,68 @@
                         <span class="badge" id="taskCountBadge">0</span>
                     </button>
                     <button class="nav-tab" data-tab="rag-panel">
-                        <i class="fa-solid fa-file-pdf"></i> <span>Knowledge Base</span>
+                        <i class="fa-solid fa-file-waveform"></i> <span>Knowledge Hub</span>
                         <span class="badge" id="docCountBadge">0</span>
                     </button>
                 </nav>
 
-                <!-- System Info Card -->
+                <!-- System Hardware Telemetry Card -->
+                <div class="telemetry-card">
+                    <div class="card-header">
+                        <i class="fa-solid fa-gauge-high"></i> <span>Hardware Telemetry</span>
+                    </div>
+                    <div class="telemetry-body">
+                        <!-- CPU Meter -->
+                        <div class="stat-row">
+                            <div class="stat-header">
+                                <span><i class="fa-solid fa-microchip"></i> CPU Utilization</span>
+                                <span class="stat-value" id="cpuStatVal">--%</span>
+                            </div>
+                            <div class="gauge-track">
+                                <div class="gauge-fill" id="cpuGaugeFill" style="width: 0%;"></div>
+                            </div>
+                        </div>
+
+                        <!-- RAM Meter -->
+                        <div class="stat-row">
+                            <div class="stat-header">
+                                <span><i class="fa-solid fa-memory"></i> RAM Memory</span>
+                                <span class="stat-value" id="ramStatVal">--%</span>
+                            </div>
+                            <div class="gauge-track">
+                                <div class="gauge-fill" id="ramGaugeFill" style="width: 0%;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Disk Meter -->
+                        <div class="stat-row">
+                            <div class="stat-header">
+                                <span><i class="fa-solid fa-hard-drive"></i> Storage Disk</span>
+                                <span class="stat-value" id="diskStatVal">--%</span>
+                            </div>
+                            <div class="gauge-track">
+                                <div class="gauge-fill" id="diskGaugeFill" style="width: 0%;"></div>
+                            </div>
+                        </div>
+
+                        <!-- System OS & Power -->
+                        <div class="stat-meta-info">
+                            <span id="osStatVal"><i class="fa-brands fa-windows"></i> Windows</span>
+                            <span id="powerStatVal"><i class="fa-solid fa-bolt"></i> AC Online</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Modules Card -->
                 <div class="info-card">
                     <div class="card-header">
-                        <i class="fa-solid fa-bolt"></i> <span>Core Modules</span>
+                        <i class="fa-solid fa-bolt"></i> <span>Active Protocols</span>
                     </div>
                     <ul class="capability-list">
-                        <li><i class="fa-solid fa-check"></i> LangGraph ReAct Agent</li>
-                        <li><i class="fa-solid fa-check"></i> Groq LLaMA-3.3 70B</li>
-                        <li><i class="fa-solid fa-check"></i> SQLite Task Storage</li>
-                        <li><i class="fa-solid fa-check"></i> FAISS Vector Document RAG</li>
+                        <li><i class="fa-solid fa-check"></i> LangGraph ReAct + Memory</li>
+                        <li><i class="fa-solid fa-check"></i> Live Token Streaming (SSE)</li>
+                        <li><i class="fa-solid fa-check"></i> Real-time Web & Wiki Search</li>
+                        <li><i class="fa-solid fa-check"></i> Multi-Format FAISS RAG</li>
                     </ul>
                 </div>
             </aside>
@@ -98,10 +148,15 @@
                         <div class="chat-header">
                             <div class="chat-title">
                                 <i class="fa-solid fa-terminal"></i> Command & Dialogue Stream
+                                <span class="session-indicator" id="sessionIndicator">
+                                    <i class="fa-solid fa-network-wired"></i> SESSION: MAIN
+                                </span>
                             </div>
-                            <button class="text-btn" id="clearChatBtn" title="Clear Conversation">
-                                <i class="fa-solid fa-trash-can"></i> Clear
-                            </button>
+                            <div class="header-actions">
+                                <button class="text-btn" id="clearChatBtn" title="Reset Session & Clear History">
+                                    <i class="fa-solid fa-rotate-left"></i> Reset Session
+                                </button>
+                            </div>
                         </div>
 
                         <!-- Chat Messages Stream -->
@@ -113,9 +168,14 @@
                                 <div class="bubble-content">
                                     <div class="sender-name">JARVIS</div>
                                     <div class="text-body">
-                                        Greetings! I am **J.A.R.V.I.S.**, your personal AI assistant. How may I assist you today?
+                                        Greetings! I am **J.A.R.V.I.S. Mark II**, your upgraded tactical assistant with multi-turn memory, live token streaming, and real-time telemetry.
                                         <br><br>
-                                        You can ask me to solve calculations, manage your task database, check the live time, or query any PDF knowledge you upload.
+                                        I am ready to assist you with:
+                                        - 🌐 **Live Web & Wikipedia Searches**
+                                        - 💻 **Real-time System Diagnostics (CPU/RAM/Disk)**
+                                        - 📋 **Interactive Task Management & Priorities**
+                                        - 📚 **Multi-Format Document Knowledge Base (PDF, DOCX, TXT, CSV)**
+                                        - 🧮 **Scientific Mathematics & Safe Python Execution**
                                     </div>
                                     <div class="bubble-footer">
                                         <span class="time-stamp">Online</span>
@@ -126,18 +186,21 @@
 
                         <!-- Quick Action Chips -->
                         <div class="quick-prompts">
-                            <span class="chip-label">Quick Commands:</span>
-                            <button class="prompt-chip" data-prompt="What is the current date and time?">
-                                <i class="fa-regular fa-clock"></i> Current Time
+                            <span class="chip-label">Quick Directives:</span>
+                            <button class="prompt-chip" data-prompt="Run system diagnostics and check hardware usage.">
+                                <i class="fa-solid fa-gauge-high"></i> Hardware Stats
                             </button>
-                            <button class="prompt-chip" data-prompt="List all my stored tasks.">
-                                <i class="fa-solid fa-list-ul"></i> List Tasks
+                            <button class="prompt-chip" data-prompt="Search the web for the latest artificial intelligence news today.">
+                                <i class="fa-solid fa-globe"></i> Web Search
                             </button>
-                            <button class="prompt-chip" data-prompt="Add a task: Review project documentation tomorrow">
-                                <i class="fa-solid fa-plus"></i> Add New Task
+                            <button class="prompt-chip" data-prompt="Add a high priority task: Finalize quarterly deliverables report">
+                                <i class="fa-solid fa-flag"></i> Add Priority Task
                             </button>
-                            <button class="prompt-chip" data-prompt="Calculate (450 * 12) + (1850 / 5)">
-                                <i class="fa-solid fa-calculator"></i> Calculation
+                            <button class="prompt-chip" data-prompt="List all my pending tasks.">
+                                <i class="fa-solid fa-list-check"></i> List Tasks
+                            </button>
+                            <button class="prompt-chip" data-prompt="Calculate sqrt(144) * 25 + (1500 / 12)">
+                                <i class="fa-solid fa-calculator"></i> Scientific Math
                             </button>
                         </div>
 
@@ -159,21 +222,36 @@
                     <div class="panel-box">
                         <div class="panel-header">
                             <div class="header-left">
-                                <h2><i class="fa-solid fa-list-check"></i> SQLite Task Manager</h2>
-                                <p>Manage and synchronize database tasks directly or through Jarvis commands.</p>
+                                <h2><i class="fa-solid fa-list-check"></i> Interactive Task Board</h2>
+                                <p>Manage and synchronize database tasks directly or through Jarvis natural language directives.</p>
                             </div>
                             <button class="refresh-btn" id="refreshTasksBtn" title="Refresh Tasks">
                                 <i class="fa-solid fa-rotate"></i> Sync
                             </button>
                         </div>
 
-                        <!-- Add Task Inline Form -->
+                        <!-- Add Task Inline Form with Priority Selector -->
                         <form class="inline-task-form" id="createTaskForm">
-                            <input type="text" id="newTaskInput" placeholder="Enter a new task description..." required>
+                            <input type="text" id="newTaskInput" placeholder="Enter task directive..." required>
+                            <select id="newTaskPriority" class="task-select-priority" title="Task Priority">
+                                <option value="medium">Medium Priority</option>
+                                <option value="high">High Priority</option>
+                                <option value="low">Low Priority</option>
+                            </select>
                             <button type="submit" class="action-btn">
                                 <i class="fa-solid fa-plus"></i> Add Task
                             </button>
                         </form>
+
+                        <!-- Task Filters -->
+                        <div class="task-filters-bar">
+                            <div class="filter-tabs">
+                                <button class="filter-tab-btn active" data-filter="all">All Tasks</button>
+                                <button class="filter-tab-btn" data-filter="pending">Pending</button>
+                                <button class="filter-tab-btn" data-filter="completed">Completed</button>
+                            </div>
+                            <span class="filter-count-label" id="filterCountLabel">Showing 0 tasks</span>
+                        </div>
 
                         <!-- Task List -->
                         <div class="task-list-container" id="taskListContainer">
@@ -189,18 +267,21 @@
                     <div class="panel-box">
                         <div class="panel-header">
                             <div class="header-left">
-                                <h2><i class="fa-solid fa-file-pdf"></i> Knowledge Base & Document RAG</h2>
-                                <p>Upload PDF documents to index them with FAISS vector database for conversational question answering.</p>
+                                <h2><i class="fa-solid fa-file-waveform"></i> Knowledge Hub & Multi-Format RAG</h2>
+                                <p>Upload documents (PDF, DOCX, TXT, MD, CSV) to index them into FAISS semantic vector memory.</p>
                             </div>
+                            <button class="btn-danger-outline" id="resetKnowledgeBtn" title="Purge Vector Store">
+                                <i class="fa-solid fa-trash-can"></i> Reset Knowledge Base
+                            </button>
                         </div>
 
                         <!-- Upload Zone -->
                         <div class="dropzone" id="pdfDropzone">
-                            <input type="file" id="fileInput" accept=".pdf" style="display: none;">
+                            <input type="file" id="fileInput" accept=".pdf,.docx,.doc,.txt,.md,.csv" style="display: none;">
                             <i class="fa-solid fa-cloud-arrow-up drop-icon"></i>
-                            <h3>Drag & Drop PDF Document Here</h3>
-                            <p>or <button type="button" class="browse-link" id="browseBtn">browse files</button> from your computer</p>
-                            <span class="file-hint">Supported format: PDF documents</span>
+                            <h3>Drag & Drop Documents Here</h3>
+                            <p>or <button type="button" class="browse-link" id="browseBtn">browse files</button> from your device</p>
+                            <span class="file-hint">Supported formats: PDF, Word (DOCX), Text (TXT, MD), CSV</span>
                         </div>
 
                         <!-- Upload Progress Bar -->
@@ -216,9 +297,12 @@
 
                         <!-- Document List -->
                         <div class="doc-list-section">
-                            <h3><i class="fa-solid fa-folder-open"></i> Indexed Documents</h3>
+                            <div class="doc-list-header">
+                                <h3><i class="fa-solid fa-folder-open"></i> Indexed Documents</h3>
+                                <button class="refresh-btn-sm" id="refreshDocsBtn"><i class="fa-solid fa-rotate"></i> Refresh</button>
+                            </div>
                             <div class="doc-list" id="docList">
-                                <div class="empty-state">No documents indexed yet. Upload a PDF above.</div>
+                                <div class="empty-state">No documents indexed yet. Upload a document above.</div>
                             </div>
                         </div>
                     </div>

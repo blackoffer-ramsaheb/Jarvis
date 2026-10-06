@@ -1207,3 +1207,363 @@ body {
         display: none;
     }
 }
+
+/* ==========================================================================
+   MARK II EXTENSIONS & TELEMETRY STYLES
+   ========================================================================== */
+
+/* Telemetry Card */
+.telemetry-card {
+    background: var(--bg-card);
+    border: var(--border-glow);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    margin-top: 10px;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.telemetry-card .card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-heading);
+    font-size: 0.85rem;
+    color: var(--cyan-primary);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.stat-row {
+    margin-bottom: 10px;
+}
+
+.stat-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.stat-header span:first-child i {
+    color: var(--cyan-primary);
+    margin-right: 4px;
+}
+
+.stat-value {
+    font-family: var(--font-mono);
+    color: var(--text-main);
+    font-weight: 600;
+}
+
+.gauge-track {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.gauge-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--cyan-primary), var(--blue-accent));
+    border-radius: 3px;
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.gauge-fill.high-load {
+    background: linear-gradient(90deg, var(--gold-accent), var(--red-alert));
+}
+
+.stat-meta-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    padding-top: 6px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.1);
+    margin-top: 6px;
+}
+
+.stat-meta-info span i {
+    color: var(--cyan-primary);
+    margin-right: 4px;
+}
+
+/* Session Indicator */
+.session-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0, 240, 255, 0.1);
+    border: 1px solid rgba(0, 240, 255, 0.3);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 0.75rem;
+    color: var(--cyan-primary);
+    font-family: var(--font-mono);
+    margin-left: 12px;
+}
+
+/* Streaming Cursor */
+.streaming-cursor {
+    display: inline-block;
+    width: 8px;
+    height: 14px;
+    background-color: var(--cyan-primary);
+    margin-left: 4px;
+    vertical-align: middle;
+    animation: blinkCursor 0.8s infinite;
+}
+
+@keyframes blinkCursor {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+
+/* Tool Execution Badges / Trace in Message Bubble */
+.tool-trace-container {
+    margin: 8px 0 12px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.tool-trace-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 30, 60, 0.5);
+    border: 1px solid rgba(0, 240, 255, 0.25);
+    border-radius: var(--radius-sm);
+    padding: 5px 10px;
+    font-size: 0.8rem;
+    font-family: var(--font-mono);
+    color: var(--text-main);
+    animation: fadeInSlide 0.2s ease;
+}
+
+.tool-name-badge {
+    background: rgba(0, 240, 255, 0.2);
+    color: var(--cyan-primary);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.tool-output-chip {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    max-width: 400px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Task Priority Select & Filters */
+.task-select-priority {
+    background: var(--bg-input);
+    border: var(--border-glow);
+    border-radius: var(--radius-sm);
+    color: var(--text-main);
+    padding: 8px 12px;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    outline: none;
+    cursor: pointer;
+}
+
+.task-select-priority:focus {
+    border-color: var(--cyan-primary);
+}
+
+.task-filters-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.filter-tabs {
+    display: flex;
+    gap: 8px;
+}
+
+.filter-tab-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: var(--text-muted);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    cursor: pointer;
+    font-family: var(--font-body);
+    transition: var(--transition-fast);
+}
+
+.filter-tab-btn:hover {
+    color: var(--text-main);
+    border-color: var(--cyan-primary);
+}
+
+.filter-tab-btn.active {
+    background: rgba(0, 240, 255, 0.15);
+    color: var(--cyan-primary);
+    border-color: var(--cyan-primary);
+    font-weight: 600;
+}
+
+.filter-count-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+}
+
+/* Task Cards Enhanced */
+.task-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(18, 30, 54, 0.6);
+    border: 1px solid rgba(0, 240, 255, 0.15);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    transition: var(--transition-fast);
+}
+
+.task-card:hover {
+    border-color: var(--cyan-primary);
+    transform: translateX(2px);
+}
+
+.task-card.completed {
+    opacity: 0.6;
+    border-color: rgba(0, 255, 136, 0.2);
+    background: rgba(0, 30, 20, 0.3);
+}
+
+.task-card.completed .task-text {
+    text-decoration: line-through;
+    color: var(--text-muted);
+}
+
+.task-left-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+}
+
+.task-check-btn {
+    background: transparent;
+    border: 1px solid rgba(0, 240, 255, 0.4);
+    color: var(--cyan-primary);
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    transition: var(--transition-fast);
+}
+
+.task-check-btn:hover {
+    background: rgba(0, 240, 255, 0.2);
+}
+
+.task-card.completed .task-check-btn {
+    background: var(--green-active);
+    border-color: var(--green-active);
+    color: #000;
+}
+
+/* Priority Badges */
+.prio-badge {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-right: 6px;
+}
+
+.prio-badge.high {
+    background: rgba(255, 0, 85, 0.15);
+    color: #ff3377;
+    border: 1px solid rgba(255, 0, 85, 0.4);
+}
+
+.prio-badge.medium {
+    background: rgba(255, 183, 3, 0.15);
+    color: #ffb703;
+    border: 1px solid rgba(255, 183, 3, 0.4);
+}
+
+.prio-badge.low {
+    background: rgba(0, 240, 255, 0.1);
+    color: #00f0ff;
+    border: 1px solid rgba(0, 240, 255, 0.3);
+}
+
+/* Danger Button & Document Header */
+.btn-danger-outline {
+    background: transparent;
+    border: 1px solid rgba(255, 0, 85, 0.4);
+    color: #ff4d79;
+    padding: 6px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-family: var(--font-body);
+    transition: var(--transition-fast);
+}
+
+.btn-danger-outline:hover {
+    background: rgba(255, 0, 85, 0.2);
+    border-color: var(--red-alert);
+}
+
+.doc-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.refresh-btn-sm {
+    background: transparent;
+    border: 1px solid rgba(0, 240, 255, 0.3);
+    color: var(--cyan-primary);
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.refresh-btn-sm:hover {
+    background: rgba(0, 240, 255, 0.15);
+}
+
+.delete-doc-btn {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 4px;
+    transition: var(--transition-fast);
+}
+
+.delete-doc-btn:hover {
+    color: var(--red-alert);
+    background: rgba(255, 0, 85, 0.1);
+}
